@@ -2,35 +2,39 @@ import express from "express";
 import path from "path";
 import cors from "cors";
 import { serve } from "inngest/express";
+import { clerkMiddleware } from '@clerk/express'
 
 import { ENV } from "./lib/env.js";
 import { connectDb } from "./lib/db.js";
 import { inngest, functions } from "./lib/inngest.js";
+import chatRoutes from "./routes/chatRoutes.js";
+
 
 const app = express();
-
 const __dirname = path.resolve();
 
+
 // middlewares
-app.use(express.json());
 app.use(cors({
     origin: ENV.CLIENT_URL,
     credentials: true, // server allows browser to include cookies on request
 }));
+app.use(express.json());
+app.use(clerkMiddleware());
 
-app.use("/api/inngest", serve({ client: inngest, functions }))
 
+// Health endpoint
 app.get("/health", (req, res) => {
     res.status(200).json({
         msg: "Ok!"
     });
 });
 
-app.get("/test", (req, res) => {
-    res.status(200).json({
-        msg: "Test endpoint"
-    });
-});
+// Webhook endpoint -> Syncs auth with MongoDB & Stream
+app.use("/api/inngest", serve({ client: inngest, functions }))
+app.use("/api/chat", chatRoutes);
+
+
 
 // check if application ready for deployment
 if (ENV.NODE_ENV === "production") {
