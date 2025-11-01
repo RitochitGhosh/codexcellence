@@ -2,13 +2,16 @@ import express from "express";
 import path from "path";
 import cors from "cors";
 import { serve } from "inngest/express";
-import { clerkMiddleware } from '@clerk/express'
+import { clerkMiddleware } from '@clerk/express';
+
 
 import { ENV } from "./lib/env.js";
 import { connectDb } from "./lib/db.js";
 import { inngest, functions } from "./lib/inngest.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import problemRoutes from "./routes/problemRoutes.js";
+import submissionRoutes from "./routes/submissionRoutes.js";
 
 
 const app = express();
@@ -35,6 +38,8 @@ app.get("/health", (req, res) => {
 app.use("/api/inngest", serve({ client: inngest, functions }))
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/problems", problemRoutes);
+app.use("/api/", submissionRoutes);
 
 
 
