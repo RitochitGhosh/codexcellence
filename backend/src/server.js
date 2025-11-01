@@ -8,6 +8,7 @@ import { ENV } from "./lib/env.js";
 import { connectDb } from "./lib/db.js";
 import { inngest, functions } from "./lib/inngest.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
 
 
 const app = express();
@@ -26,13 +27,14 @@ app.use(clerkMiddleware());
 // Health endpoint
 app.get("/health", (req, res) => {
     res.status(200).json({
-        msg: "Ok!"
+        message: "Ok!"
     });
 });
 
 // Webhook endpoint -> Syncs auth with MongoDB & Stream
 app.use("/api/inngest", serve({ client: inngest, functions }))
 app.use("/api/chat", chatRoutes);
+app.use("/api/sessions", sessionRoutes);
 
 
 

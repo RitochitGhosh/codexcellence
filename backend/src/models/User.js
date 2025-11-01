@@ -4,6 +4,7 @@ const userSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
+        index: true,
     },
     email: {
         type: String,
@@ -22,6 +23,8 @@ const userSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+userSchema.index({ name: "text" });
 
 const User = mongoose.model("User", userSchema);
 
