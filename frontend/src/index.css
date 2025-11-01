@@ -1,68 +1,59 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "mytheme";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Consistent dark progression: Lightest → Darkest */
+  --color-base-100: oklch(16% 0.012 250); /* Lightest - main surfaces */
+  --color-base-200: oklch(13% 0.012 250); /* Medium - elevated cards */
+  --color-base-300: oklch(10% 0.012 250); /* Darkest - backgrounds */
+  --color-base-content: oklch(94% 0.005 250); /* Crisp white text */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  /* Unified crimson palette - ALL at hue 12 (true crimson/brick red) */
+  --color-primary: oklch(55% 0.19 12); /* Main crimson - perfect brick red */
+  --color-primary-content: oklch(98% 0.003 12); /* White on primary */
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+  /* Deeper shade of the same crimson */
+  --color-secondary: oklch(42% 0.16 12); /* Deep burgundy crimson */
+  --color-secondary-content: oklch(98% 0.003 12); /* White on secondary */
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+  /* Lighter shade of the same crimson */
+  --color-accent: oklch(65% 0.17 12); /* Bright crimson accent */
+  --color-accent-content: oklch(98% 0.003 12); /* White on accent */
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+  /* Neutral - matches base progression */
+  --color-neutral: oklch(25% 0.010 250); /* Warm neutral */
+  --color-neutral-content: oklch(94% 0.005 250); /* Light text */
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+  /* Utility colors - harmonious with crimson */
+  --color-info: oklch(65% 0.19 240); /* Cool blue */
+  --color-info-content: oklch(98% 0.003 240);
+  
+  --color-success: oklch(65% 0.18 155); /* Fresh green */
+  --color-success-content: oklch(98% 0.003 155);
+  
+  --color-warning: oklch(75% 0.17 65); /* Warm orange */
+  --color-warning-content: oklch(15% 0.010 65);
+  
+  --color-error: oklch(62% 0.23 18); /* Error red (close to primary) */
+  --color-error-content: oklch(98% 0.003 18);
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  /* Refined border radius */
+  --radius-selector: 0.75rem; /* 12px - badges */
+  --radius-field: 0.5rem; /* 8px - inputs */
+  --radius-box: 1rem; /* 16px - cards */
+
+  /* Consistent spacing */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* Subtle borders */
+  --border: 1px;
+
+  /* Effects */
+  --depth: 1;
+  --noise: 0;
 }
