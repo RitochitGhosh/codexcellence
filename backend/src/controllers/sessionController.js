@@ -4,7 +4,7 @@ import Session from "../models/Session.js";
 
 export async function createSession(req, res) {
     try {
-        const { problem, difficulty } = req.body;
+        const { problem, difficulty, sessionCode } = req.body;
         const userId = req.user._id;
         const clerkId = req.user.clerkId;
 
@@ -12,6 +12,25 @@ export async function createSession(req, res) {
             return res.status(400).json({
                 message: "Problem and Difficulty are required!"
             });
+        }
+
+        const validDifficulties = ["easy", "medium", "hard"];
+        if (!validDifficulties.includes(difficulty)) {
+            return res.status(400).json({
+                message: "Difficulty must be one of: easy, medium, hard"
+            });
+        }
+
+        if (sessionCode) {
+            const existingSession = await Session.findOne({
+                sessionCode: sessionCode.toUpperCase(),
+                status: "active"
+            });
+            if (existingSession) {
+                return res.status(409).json({
+                    message: "Session code already in use. Please choose a different code."
+                });
+            }
         }
 
         // generate a unique call id for stream video
@@ -23,6 +42,7 @@ export async function createSession(req, res) {
             difficulty,
             host: userId,
             callId,
+            sessionCode: sessionCode ? sessionCode.toUpperCase() : undefined,
         });
 
         // create stream video call
@@ -64,6 +84,7 @@ export async function getActiveSessions(_, res) {
                 status: "active",
             })
             .populate("host", "name profileImage email clerkId")
+            .select("-sessionCode")
             .sort({ createdAt: -1 })
             .limit(20);
 
@@ -84,6 +105,8 @@ export async function getRecentSessions(req, res) {
                 status: "completed",
                 $or: [{ host: userId }, { participant: userId }]
             })
+            .populate("host", "name profileImage email clerkId")
+            .populate("participant", "name profileImage email clerkId")
             .sort({ createdAt: -1 })
             .limit(20);
 
@@ -97,12 +120,24 @@ export async function getRecentSessions(req, res) {
 export async function getSessionById(req, res) {
     try {
         const { id } = req.params;
+        const userId = req.user._id;
 
         const session = await Session.findById(id)
             .populate("host", "name email profileImage clerkId")
             .populate("participant", "name email profileImage clerkId");
 
         if (!session) return res.status(404).json({ message: "Session not found" });
+
+        // Only show session code to host or participant
+        const isHostOrParticipant = 
+            session.host._id.toString() === userId.toString() || 
+            (session.participant && session.participant._id.toString() === userId.toString());
+
+        if (!isHostOrParticipant) {
+            const sessionData = session.toObject();
+            delete sessionData.sessionCode;
+            return res.status(200).json({ session: sessionData });
+        }
 
         res.status(200).json({ session });
     } catch (error) {
@@ -114,11 +149,25 @@ export async function getSessionById(req, res) {
 export async function joinSession(req, res) {
     try {
         const { id } = req.params;
+        const { sessionCode } = req.body;
         const userId = req.user._id;
         const clerkId = req.user.clerkId;
 
+        if (!sessionCode) {
+            return res.status(400).json({ 
+                message: "Session code is required to join" 
+            });
+        }
+
         const session = await Session.findById(id);
         if (!session) return res.status(404).json({ message: "Session not found" });
+
+        // verify session code
+        if (session.sessionCode !== sessionCode.toUpperCase()) {
+            return res.status(403).json({ 
+                message: "Invalid session code" 
+            });
+        }
 
         // edge checks
         if (session.status !== "active") {
@@ -143,6 +192,59 @@ export async function joinSession(req, res) {
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
+export async function joinSessionByCode(req, res) {
+    try {
+        const { sessionCode } = req.body;
+        const userId = req.user._id;
+        const clerkId = req.user.clerkId;
+
+        if (!sessionCode) {
+            return res.status(400).json({ 
+                message: "Session code is required" 
+            });
+        }
+
+        const session = await Session.findOne({ 
+            sessionCode: sessionCode.toUpperCase(),
+            status: "active"
+        }).populate("host", "name email profileImage clerkId");
+
+        if (!session) {
+            return res.status(404).json({ 
+                message: "No active session found with this code" 
+            });
+        }
+
+        // edge checks
+        if (session.host._id.toString() === userId.toString()) {
+            return res.status(400).json({ 
+                message: "Host cannot join their own session as participant" 
+            });
+        }
+
+        if (session.participant) {
+            return res.status(409).json({ 
+                message: "Session is full" 
+            });
+        }
+
+        session.participant = userId;
+        await session.save();
+
+        const channel = chatClient.channel("messaging", session.callId);
+        await channel.addMembers([clerkId]);
+
+        // Populate participant data before sending response
+        await session.populate("participant", "name email profileImage clerkId");
+
+        res.status(200).json({ session });
+    } catch (error) {
+        console.log("Error in joinSessionByCode controller:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
 
 export async function endSession(req, res) {
     try {
@@ -177,6 +279,36 @@ export async function endSession(req, res) {
         res.status(200).json({ session, message: "Session ended successfully" });
     } catch (error) {
         console.log("Error in endSession controller:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export async function getSessionByCode(req, res) {
+    try {
+        const { code } = req.params;
+
+        if (!code) {
+            return res.status(400).json({ 
+                message: "Session code is required" 
+            });
+        }
+
+        const session = await Session.findOne({ 
+            sessionCode: code.toUpperCase(),
+            status: "active"
+        })
+        .populate("host", "name profileImage email")
+        .select("-sessionCode"); // Don't expose the code in response
+
+        if (!session) {
+            return res.status(404).json({ 
+                message: "No active session found with this code" 
+            });
+        }
+
+        res.status(200).json({ session });
+    } catch (error) {
+        console.log("Error in getSessionByCode controller:", error.message);
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
